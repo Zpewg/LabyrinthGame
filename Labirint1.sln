@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Labirint1", "Labirint1\Labirint1.csproj", "{9A1D7A9A-F60C-4BC7-AE33-AC0E77CAFF07}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LabirinthClient1", "LabirinthClient1\LabirinthClient1.csproj", "{91FF1F27-3A68-4E76-864B-BBD64382625B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{9A1D7A9A-F60C-4BC7-AE33-AC0E77CAFF07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A1D7A9A-F60C-4BC7-AE33-AC0E77CAFF07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A1D7A9A-F60C-4BC7-AE33-AC0E77CAFF07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91FF1F27-3A68-4E76-864B-BBD64382625B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91FF1F27-3A68-4E76-864B-BBD64382625B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91FF1F27-3A68-4E76-864B-BBD64382625B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91FF1F27-3A68-4E76-864B-BBD64382625B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

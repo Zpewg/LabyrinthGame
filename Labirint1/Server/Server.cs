@@ -18,7 +18,19 @@ public class Server
             server = new TcpListener(localAdress, port);
             server.Start();
             Console.WriteLine("Server Started");
-            DisplayMatrix();
+            Labirinth lab = new Labirinth();
+            string[,] labirnth = lab.GetLabirinths();
+            DisplayMatrix(labirnth);
+            while (true)
+            {
+                TcpClient client = server.AcceptTcpClient();
+                
+                NetworkStream stream = client.GetStream();
+                StreamReader reader = new StreamReader(stream);
+                StreamWriter writer = new StreamWriter(stream);
+              
+                SendMatrix(labirnth, writer);
+            }
         }
         catch (Exception e)
         {
@@ -26,16 +38,49 @@ public class Server
         }
     }
 
-    public void DisplayMatrix()
+    public void SendMatrix(string[,] labirnth, StreamWriter streamWriter)
     {
-        Labirinth lab = new Labirinth();
-        string[,] labirnth = lab.GetLabirinths();
+        Console.WriteLine("Sending Matrix");
+        string[,] hiddenMatrix = HideMatrix(labirnth);
+        for (int i = 0; i < hiddenMatrix.GetLength(0); i++)
+        {
+            string line = "";
+            for (int j = 0; j < hiddenMatrix.GetLength(1); j++)
+            {
+                line += hiddenMatrix[i, j] + " ";
+            }
+            streamWriter.WriteLine(line);
+            Console.WriteLine($"Sent: {line}");
+        }
+        streamWriter.WriteLine("End");
+        streamWriter.Flush();
+        
+    }
+
+    public string[,] HideMatrix(string[,] labirnth)
+    {
+        string[,] result = labirnth;
         for (int i = 0; i < labirnth.GetLength(0); i++)
         {
-            Console.WriteLine(" ");
             for (int j = 0; j < labirnth.GetLength(1); j++)
             {
-                Console.Write(labirnth[i, j] + " ");
+                if (result[i, j] != "1")
+                {
+                    result[i, j] = "0";
+                }
+            }
+        }
+        return result;
+    }
+    public void DisplayMatrix(string[,] labirinth)
+    {
+      
+        for (int i = 0; i < labirinth.GetLength(0); i++)
+        {
+            Console.WriteLine(" ");
+            for (int j = 0; j < labirinth.GetLength(1); j++)
+            {
+                Console.Write(labirinth[i, j] + " ");
             }
         }
     }
