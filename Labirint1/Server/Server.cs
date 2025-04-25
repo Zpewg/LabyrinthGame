@@ -153,7 +153,7 @@ public class Server
 
     public static void MoveDown(ref string[,] labirnth, StreamWriter streamWriter)
     {
-        bool moved = false;
+        
         for (int i = 0; i < labirnth.GetLength(0)-1; i++)
         {
             for (int j = 0; j < labirnth.GetLength(1); j++)
@@ -162,7 +162,7 @@ public class Server
                 if (labirnth[i, j] == "1")
                 {
                    
-                    if ( labirnth[i + 1, j] != "0" && !moved)
+                    if ( labirnth[i + 1, j] != "0")
                     {
                         string temp = labirnth[i + 1, j];
                         CheckWinningCondition(temp, streamWriter);
@@ -172,19 +172,19 @@ public class Server
                         Console.WriteLine(position);
                         streamWriter.WriteLine(position);
                         streamWriter.Flush();
-                        
-                        moved = true;
-                        break;
+
+                        DisplayMatrix(labirnth);
+                        return;
                     }
                     
                     streamWriter.WriteLine("You hit a wall!");
                     streamWriter.Flush();
-                    break;
+                    return;
                 }
             }
-            if(moved) break;
+            
         }
-        DisplayMatrix(labirnth);
+       
     }
 
     public static void MoveLeft(ref string[,] labirnth, StreamWriter streamWriter)
