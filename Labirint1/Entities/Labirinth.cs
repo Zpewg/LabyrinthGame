@@ -2,7 +2,7 @@
 
 public class Labirinth
 {
-    private string[,] labirinthEasy = new string[7,7]
+    private string[,] labirinthEasy = new string[7, 7]
     {
         { "0", "0", "0", "0", "0", "0", "0" },
         { "0", "1", "2", "2", "2", "0", "0" },
@@ -41,10 +41,10 @@ public class Labirinth
         { "0", "2", "2", "2", "2", "0", "2", "2", "2", "0" },
         { "0", "0", "0", "0", "0", "0", "0", "0", "0", "0" }
     };
-    
-    private List<string[,]> labirinths = new List<string[,]>() ;
-    
-    
+
+    private List<string[,]> labirinths = new List<string[,]>();
+
+
     public Labirinth()
     {
         labirinths.Add(labirinthEasy);
@@ -58,5 +58,4 @@ public class Labirinth
         int x = rnd.Next(0, 3);
         return labirinths.ElementAt(x);
     }
-    
 }
