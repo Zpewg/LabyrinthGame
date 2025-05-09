@@ -50,9 +50,18 @@ public class Client
             
            string[,] matrix2D = ListToMatrix(matrix);
            PrintMatrix(matrix2D);
+
            string messageFromServer;
            while (true)
            {
+               string turnMessage = streamReader.ReadLine();
+               if (turnMessage != "Your turn")
+               {
+                   Console.WriteLine("Error, another message was sent!");
+                   continue;
+               }
+               Console.WriteLine(turnMessage);
+               Console.WriteLine(turnMessage);
                Console.WriteLine("\nWhat is your move?");
                string message = Console.ReadLine();
                streamWriter.WriteLine(message);

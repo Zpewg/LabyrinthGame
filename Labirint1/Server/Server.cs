@@ -1,48 +1,27 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using Labirint1;
+using System.IO;
 
 namespace Labirint1.Server;
 
 public class Server
 {
-    public static int playerRow;
-    public static int playerCol;
+    private static int playerRow;
+    private static int playerCol;
+    private static string[,] labirinth;
+    private static TcpClient[] clients;
+    private static StreamReader[] readers;
+    private static StreamWriter[] writers;
+    private static int numberOfPlayers;
 
     public Server()
     {
         TcpListener server = null;
-
         try
         {
-            int port = 5000;
-            IPAddress localAdress = IPAddress.Parse("192.168.56.1");
-            server = new TcpListener(localAdress, port);
-            server.Start();
-            Console.WriteLine("Server Started");
-            Labirinth lab = new Labirinth();
-            string[,] labirnth = lab.GetLabirinths();
-            DisplayMatrix(labirnth);
-            FindPlayer(labirnth);
-            while (true)
-            {
-                TcpClient client = server.AcceptTcpClient();
-
-                NetworkStream stream = client.GetStream();
-                StreamReader reader = new StreamReader(stream);
-                StreamWriter writer = new StreamWriter(stream);
-                writer.AutoFlush = true;
-                SendMatrix(labirnth, writer);
-
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    if (!checkDirection(line, ref labirnth, writer))
-                    {
-                        writer.WriteLine("Invalid input!");
-                    }
-                }
-            }
+            InitializeServer(out server);
+            AcceptClients(server);
+            GameLoop();
         }
         catch (Exception e)
         {
@@ -50,13 +29,82 @@ public class Server
         }
     }
 
-    public static void FindPlayer(string[,] labirnth)
+    private void InitializeServer(out TcpListener server)
     {
-        for (int i = 0; i < labirnth.GetLength(0); i++)
+        Console.WriteLine("Enter number of players (1 or 2): ");
+        while (!int.TryParse(Console.ReadLine(), out numberOfPlayers) || (numberOfPlayers != 1 && numberOfPlayers != 2))
         {
-            for (int j = 0; j < labirnth.GetLength(1); j++)
+            Console.WriteLine("Invalid input. Enter 1 or 2:");
+        }
+
+        int port = 5000;
+        IPAddress localAddress = IPAddress.Parse("192.168.56.1");
+        server = new TcpListener(localAddress, port);
+        server.Start();
+        Console.WriteLine($"Server started. Waiting for {numberOfPlayers} player(s)...");
+
+        Labirinth lab = new Labirinth();
+        labirinth = lab.GetLabirinths();
+        DisplayMatrix(labirinth);
+        FindPlayer(labirinth);
+
+        clients = new TcpClient[numberOfPlayers];
+        readers = new StreamReader[numberOfPlayers];
+        writers = new StreamWriter[numberOfPlayers];
+    }
+
+    private void AcceptClients(TcpListener server)
+    {
+        for (int i = 0; i < numberOfPlayers; i++)
+        {
+            clients[i] = server.AcceptTcpClient();
+            NetworkStream stream = clients[i].GetStream();
+            readers[i] = new StreamReader(stream);
+            writers[i] = new StreamWriter(stream) { AutoFlush = true };
+            
+            SendMatrix(labirinth, writers[i]);
+        }
+    }
+
+
+    private void GameLoop()
+    {
+        int currentPlayer = 0;
+        while (true)
+        {
+            StreamWriter writer = writers[currentPlayer];
+            StreamReader reader = readers[currentPlayer];
+
+            writer.WriteLine("Your turn"); 
+            writer.Flush();
+
+            string line = reader.ReadLine();
+
+            if (line == null)
             {
-                if (labirnth[i, j] == "1")
+                Console.WriteLine($"Player {currentPlayer + 1} disconnected.");
+                break;
+            }
+
+            Console.WriteLine($"Player {currentPlayer + 1} command: {line}");
+
+            if (!CheckDirection(line, ref labirinth, writer))
+            {
+                writer.WriteLine("Invalid input!");
+            }
+
+            currentPlayer = (currentPlayer + 1) % numberOfPlayers;
+        }
+    }
+
+
+    private static void FindPlayer(string[,] labirinth)
+    {
+        for (int i = 0; i < labirinth.GetLength(0); i++)
+        {
+            for (int j = 0; j < labirinth.GetLength(1); j++)
+            {
+                if (labirinth[i, j] == "1")
                 {
                     playerRow = i;
                     playerCol = j;
@@ -84,162 +132,128 @@ public class Server
         streamWriter.Flush();
     }
 
-    public string[,] HideMatrix(string[,] labirnth)
+    private static string[,] HideMatrix(string[,] labirinth)
     {
-        int rows = labirnth.GetLength(0);
-        int cols = labirnth.GetLength(1);
+        int rows = labirinth.GetLength(0);
+        int cols = labirinth.GetLength(1);
         string[,] result = new string[rows, cols];
-        for (int i = 0; i < labirnth.GetLength(0); i++)
+
+        for (int i = 0; i < rows; i++)
         {
-            for (int j = 0; j < labirnth.GetLength(1); j++)
+            for (int j = 0; j < cols; j++)
             {
-                result[i, j] = "1";
-                if (labirnth[i, j] != "1")
-                {
-                    result[i, j] = "0";
-                }
+                result[i, j] = labirinth[i, j] == "1" ? "1" : "0";
             }
         }
 
         return result;
     }
 
-    public static void DisplayMatrix(string[,] labirinth)
+    private static void DisplayMatrix(string[,] labirinth)
     {
         for (int i = 0; i < labirinth.GetLength(0); i++)
         {
-            Console.WriteLine(" ");
+            Console.WriteLine();
             for (int j = 0; j < labirinth.GetLength(1); j++)
             {
                 Console.Write(labirinth[i, j] + " ");
             }
         }
+
+        Console.WriteLine("\n");
     }
 
-    public static bool checkDirection(string direction, ref string[,] labirnth, StreamWriter streamWriter)
+    private static bool CheckDirection(string direction, ref string[,] labirinth, StreamWriter writer)
     {
         switch (direction.ToLower())
         {
-            case "up":
-                MoveUp(ref labirnth, streamWriter);
-                break;
-            case "down":
-                MoveDown(ref labirnth, streamWriter);
-                break;
-            case "left":
-                MoveLeft(ref labirnth, streamWriter);
-                break;
-            case "right":
-                MoveRight(ref labirnth, streamWriter);
-                break;
+            case "up": MoveUp(ref labirinth, writer); break;
+            case "down": MoveDown(ref labirinth, writer); break;
+            case "left": MoveLeft(ref labirinth, writer); break;
+            case "right": MoveRight(ref labirinth, writer); break;
             default: return false;
         }
 
         return true;
     }
 
-    public static void MoveUp(ref string[,] labirnth, StreamWriter streamWriter)
+    private static void MoveUp(ref string[,] labirinth, StreamWriter writer)
     {
-        if (labirnth[playerRow - 1, playerCol] != "0")
+        if (labirinth[playerRow - 1, playerCol] != "0")
         {
-            string temp = labirnth[playerRow - 1, playerCol];
-            CheckWinningCondition(temp, streamWriter);
-            labirnth[playerRow - 1, playerCol] = "1";
-            labirnth[playerRow, playerCol] = temp;
-            string position = (playerRow - 1).ToString() + "," + playerCol.ToString();
+            string temp = labirinth[playerRow - 1, playerCol];
+            CheckWinningCondition(temp, writer);
+            labirinth[playerRow - 1, playerCol] = "1";
+            labirinth[playerRow, playerCol] = temp;
             playerRow--;
-            Console.WriteLine(position);
-            streamWriter.WriteLine(position);
-            streamWriter.Flush();
-            DisplayMatrix(labirnth);
-            return;
+            SendPosition(writer);
         }
-
-        streamWriter.WriteLine("You hit a wall!");
-        streamWriter.Flush();
-
-
-        DisplayMatrix(labirnth);
+        else SendWallMessage(writer);
     }
 
-    public static void MoveDown(ref string[,] labirnth, StreamWriter streamWriter)
+    private static void MoveDown(ref string[,] labirinth, StreamWriter writer)
     {
-        if (labirnth[playerRow + 1, playerCol] != "0")
+        if (labirinth[playerRow + 1, playerCol] != "0")
         {
-            string temp = labirnth[playerRow + 1, playerCol];
-            CheckWinningCondition(temp, streamWriter);
-            labirnth[playerRow + 1, playerCol] = "1";
-            labirnth[playerRow, playerCol] = temp;
-            string position = (playerRow + 1).ToString() + "," + playerCol.ToString();
+            string temp = labirinth[playerRow + 1, playerCol];
+            CheckWinningCondition(temp, writer);
+            labirinth[playerRow + 1, playerCol] = "1";
+            labirinth[playerRow, playerCol] = temp;
             playerRow++;
-            Console.WriteLine(position);
-            streamWriter.WriteLine(position);
-            streamWriter.Flush();
-
-            DisplayMatrix(labirnth);
-            return;
+            SendPosition(writer);
         }
-
-        streamWriter.WriteLine("You hit a wall!");
-        streamWriter.Flush();
+        else SendWallMessage(writer);
     }
 
-    public static void MoveLeft(ref string[,] labirnth, StreamWriter streamWriter)
+    private static void MoveLeft(ref string[,] labirinth, StreamWriter writer)
     {
-        if (labirnth[playerRow, playerCol - 1] != "0")
+        if (labirinth[playerRow, playerCol - 1] != "0")
         {
-            string temp = labirnth[playerRow, playerCol - 1];
-            CheckWinningCondition(temp, streamWriter);
-            labirnth[playerRow, playerCol - 1] = "1";
-            labirnth[playerRow, playerCol] = temp;
-            string position = playerRow.ToString() + "," + (playerCol - 1).ToString();
+            string temp = labirinth[playerRow, playerCol - 1];
+            CheckWinningCondition(temp, writer);
+            labirinth[playerRow, playerCol - 1] = "1";
+            labirinth[playerRow, playerCol] = temp;
             playerCol--;
-            Console.WriteLine(position);
-            streamWriter.WriteLine(position);
-            streamWriter.Flush();
-            DisplayMatrix(labirnth);
-            return;
+            SendPosition(writer);
         }
-
-
-        streamWriter.WriteLine("You hit a wall!");
-        streamWriter.Flush();
-
-
-        DisplayMatrix(labirnth);
+        else SendWallMessage(writer);
     }
 
-    public static void MoveRight(ref string[,] labirnth, StreamWriter streamWriter)
+    private static void MoveRight(ref string[,] labirinth, StreamWriter writer)
     {
-        if (labirnth[playerRow, playerCol + 1] != "0")
+        if (labirinth[playerRow, playerCol + 1] != "0")
         {
-            string temp = labirnth[playerRow, playerCol + 1];
-            CheckWinningCondition(temp, streamWriter);
-            labirnth[playerRow, playerCol + 1] = "1";
-            labirnth[playerRow, playerCol] = temp;
-            string position = playerRow.ToString() + "," + (playerCol + 1).ToString();
+            string temp = labirinth[playerRow, playerCol + 1];
+            CheckWinningCondition(temp, writer);
+            labirinth[playerRow, playerCol + 1] = "1";
+            labirinth[playerRow, playerCol] = temp;
             playerCol++;
-            Console.WriteLine(position);
-            streamWriter.WriteLine(position);
-            streamWriter.Flush();
-            DisplayMatrix(labirnth);
-            return;
+            SendPosition(writer);
         }
-        
-        
-        streamWriter.WriteLine("You hit a wall!");
-        streamWriter.Flush();
-
-
-        DisplayMatrix(labirnth);
+        else SendWallMessage(writer);
     }
 
-    public static void CheckWinningCondition(string pos, StreamWriter streamWriter)
+    private static void SendPosition(StreamWriter writer)
+    {
+        string position = $"{playerRow},{playerCol}";
+        writer.WriteLine(position);
+        writer.Flush();
+        DisplayMatrix(labirinth);
+    }
+
+    private static void SendWallMessage(StreamWriter writer)
+    {
+        writer.WriteLine("You hit a wall!");
+        writer.Flush();
+        DisplayMatrix(labirinth);
+    }
+
+    private static void CheckWinningCondition(string pos, StreamWriter writer)
     {
         if (pos == "3")
         {
-            streamWriter.WriteLine("Found the exit! You win!");
-            streamWriter.Flush();
+            writer.WriteLine("Found the exit! You win!");
+            writer.Flush();
         }
     }
 }
